@@ -1,11 +1,11 @@
 import axios from "axios";
-
-let url = ''
+import { apiUrl } from "../../const/api";
 
 const state = {
-  posts: [], // API'dan kelgan barcha postlar
-  error: null, // Xatoliklar
-  favorites: [], // Saqlangan postlar ID'lari
+  error: null, // Xatoliklar korse boladi
+  favorites: [], // Saqlangan postlar ID'lari jamlangan karoche
+  posts: JSON.parse(localStorage.getItem("posts")) || [], // 😁Lokal xotiradan o'qish qilib kordim boshini lekin juda mayda ish
+  hasFetchedPosts: !!localStorage.getItem("hasFetchedPosts"),
 };
 
 const getters = {
@@ -25,43 +25,45 @@ const actions = {
   async commitPost({ commit }, postId) {
     try {
       const post = state.posts.find((p) => p.id === postId);
-      if (!post) throw new Error('Post not found');
-      await axios.post(`http://localhost:3000/posts/${postId}/commit`, post);
-      commit('markAsCommitted', postId);
+      if (!post) throw new Error("Post not found");
+      await axios.post(`${apiUrl}commit/?postId=${postId}`, post);
+      commit("markAsCommitted", postId);
     } catch (error) {
-      console.error('Error committing post:', error);
+      console.error("Error committing post:", error);
     }
   },
   async fetchPosts({ commit }) {
-    // API'dan postlarni olish
+    if (state.hasFetchedPosts) {
+      return;
+    }
     try {
-      const response = await axios.get(
-        "http://localhost:3000/posts"
-      );
-      commit("setPosts", response.data); // Postlarni store'ga yuklash
+      const response = await axios.get(`${apiUrl}posts`);
+      commit("setPosts", response.data);
+      commit("SET_HAS_FETCHED_POSTS", true);
     } catch (error) {
-      commit("setError", "Failed to fetch posts."); // Xatolikni saqlash
+      commit("setError", "Failed to fetch posts.");
     }
   },
   editPost({ commit }, updatedPost) {
-    commit("updatePost", updatedPost); // Postni lokal yangilash
+    commit("updatePost", updatedPost);
   },
   deletePost({ commit }, postId) {
-    commit("removePost", postId); // Postni lokal o'chirish
+    commit("removePost", postId);
   },
   toggleFavorite({ commit }, postId) {
-    commit("toggleFavorite", postId); // Postni saqlash yoki olib tashlash
+    commit("toggleFavorite", postId);
   },
 };
 
 const mutations = {
   setPosts(state, posts) {
-    state.posts = posts; // Postlarni yangilash
+    state.posts = posts;
+    localStorage.setItem("posts", JSON.stringify(posts));
   },
   setError(state, error) {
-    state.error = error; // Xatolikni o'rnatish
+    state.error = error;
   },
-  updatePost(state, updatedPost) { // Nomi o'zgartirildi
+  updatePost(state, updatedPost) {
     const index = state.posts.findIndex((post) => post.id === updatedPost.id);
     if (index !== -1) {
       state.posts.splice(index, 1, updatedPost);
@@ -72,19 +74,22 @@ const mutations = {
   },
   toggleFavorite(state, postId) {
     if (state.favorites.includes(postId)) {
-      state.favorites = state.favorites.filter((id) => id !== postId); // Saqlangan postni olib tashlash
+      state.favorites = state.favorites.filter((id) => id !== postId);
     } else {
-      state.favorites.push(postId); // Postni saqlash
+      state.favorites.push(postId);
     }
   },
   markAsCommitted(state, postId) {
     const post = state.posts.find((p) => p.id === postId);
     if (post) {
-      post.committed = true; // Holatni belgilash
+      post.committed = true;
     }
   },
   ADD_POST(state, post) {
     state.posts.push(post);
+  },
+  SET_HAS_FETCHED_POSTS(state, status) {
+    state.hasFetchedPosts = status;
   },
 };
 

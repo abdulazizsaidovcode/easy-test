@@ -1,7 +1,7 @@
 <template>
-  <div class="mt-4 flex justify-between items-center space-x-2">
+  <div class="mt-4 flex justify-between items-center space-x-2 sm:flex-row flex-col gap-5 sm:gap-0">
     <!-- Previous Button -->
-    <div class="flex gap-5">
+    <div class="flex gap-5 ">
       <button
         @click="goToPage(currentPage - 1)"
         :disabled="currentPage === 1"

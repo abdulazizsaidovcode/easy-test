@@ -4,7 +4,7 @@
     <p v-if="error" class="text-red-500 mb-4">{{ error }}</p>
 
     <!-- Controls -->
-    <div class="mb-4 flex items-center space-x-4">
+    <div class="mb-4 flex items-center space-x-4 flex-wrap gap-3">
       <button
         class="bg-green-500 text-white px-3 py-1 rounded"
         @click="openTaskModal()"
@@ -15,20 +15,21 @@
       <input
         type="text"
         v-model="searchQuery"
-        @input="updatetodos"
+        @input="updateTodos"
         placeholder="Search todos"
         class="p-2 border rounded"
       />
 
       <select
         v-model="sortOption"
-        @change="updatetodos"
+        @change="updateTodos"
         class="p-2 border rounded"
       >
         <option value="default">Default (Incomplete first)</option>
         <option value="name">Sort by Name</option>
         <option value="status">Sort by Status</option>
       </select>
+
       <button
         class="bg-blue-500 text-white px-3 py-1 rounded"
         @click="toggleCompletedFilter"
@@ -39,10 +40,20 @@
       </button>
     </div>
 
+    <!-- Loading Spinner -->
+    <div v-if="isLoading" class="text-center mb-4">
+      <span class="loader"></span>
+      <p>Loading...</p>
+    </div>
+    
+    <div v-if="!isLoading && !paginatedTodos.length" class="text-center mb-4">
+      <p>no todos !</p>
+    </div>
+
     <!-- todos List -->
-    <div class="space-y-2">
+    <div v-else class="space-y-2">
       <div
-        v-for="task in paginatedtodos"
+        v-for="task in paginatedTodos"
         :key="task.id"
         class="flex items-center justify-between border p-2 rounded"
       >
@@ -50,7 +61,7 @@
           <input
             type="checkbox"
             :checked="task.completed"
-            @change="toggleTodostatus(task.id)"
+            @change="toggleTodoStatus(task.id)"
             class="mr-2"
           />
           <span :class="{ 'line-through text-gray-500': task.completed }">
@@ -68,8 +79,8 @@
             class="bg-red-500 text-white px-2 py-1 rounded"
             @click="
               openModal(
-                'Delete Post',
-                'Are you sure you want to delete this post?',
+                'Delete Task',
+                'Are you sure you want to delete this task?',
                 'delete',
                 task.id
               )
@@ -90,9 +101,11 @@
       @cancel="handleCancel"
     />
 
+    <!-- Toasts -->
     <DynamicToast v-if="successMessage" :text="successMessage" type="success" />
-    <DynamicToast v-if="error" :text="error" type="error" />
+    <DynamicToast v-if="errorMessage" :text="errorMessage" type="error" />
 
+    <!-- Task Modal -->
     <div
       v-if="isModalOpen"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -100,10 +113,10 @@
     >
       <div class="bg-white rounded shadow-lg p-4">
         <h2 class="text-xl font-bold mb-4">
-          {{ modalTodos.id ? "Edit Task" : "Add Task" }}
+          {{ modalTodo.id ? "Edit Task" : "Add Task" }}
         </h2>
         <input
-          v-model="modalTodos.title"
+          v-model="modalTodo.title"
           type="text"
           placeholder="Task title"
           class="w-full p-2 border rounded mb-4"
@@ -151,22 +164,22 @@ export default {
       selectedAction: "",
       selectedTaskId: "",
 
+      isLoading: false,
       successMessage: null,
-      error: null,
+      errorMessage: null,
 
       perPage: 10,
       currentPage: 1,
       searchQuery: "",
       sortOption: "default",
       isCompletedFilter: false,
-      perPageOptions: [10, 20, 50, 100, "All"],
       isModalOpen: false,
-      modalTodos: { id: null, title: "", completed: false },
+      modalTodo: { id: null, title: "", completed: false },
     };
   },
   computed: {
     ...mapGetters("todos", ["allTodos", "error"]),
-    filteredDodos() {
+    filteredTodos() {
       let todos = this.allTodos;
       if (this.searchQuery) {
         todos = todos.filter((task) =>
@@ -179,110 +192,132 @@ export default {
         todos = [...todos].sort((a, b) => a.completed - b.completed);
       }
       if (this.isCompletedFilter) {
-        todos = [...todos].reverse(); // Teskari tartibda chiqarish
+        todos = [...todos].reverse();
       }
       return todos;
     },
-    paginatedtodos() {
-      if (this.perPage === "All") return this.filteredDodos;
+    paginatedTodos() {
+      if (this.perPage === "All") return this.filteredTodos;
       const start = (this.currentPage - 1) * this.perPage;
       const end = start + this.perPage;
-      if (this.filteredDodos && this.filteredDodos.length > 0) {
-        return this.filteredDodos.slice(start, end);
-      }
-    },
-    totalPages() {
-      const totalItems =
-        this.perPage === "All" ? this.filteredDodos.length : this.perPage;
-      if (this.filteredDodos && this.filteredDodos.length > 0) {
-        return Math.ceil(this.filteredDodos.length / totalItems);
-      }
+      return this.filteredTodos.slice(start, end);
     },
   },
   methods: {
-    ...mapActions("todos", [
-      "fetchTodos",
-      "toggleTodos",
-      "deleteTodos",
-      "addTodos",
-      "editTodos",
-    ]),
-    openModal(title, message, action, postId = null) {
+    ...mapActions("todos", ["fetchTodos", "toggleTodos", "deleteTodos", "addTodos", "editTodos"]),
+    openModal(title, message, action, taskId = null) {
       this.universalModalTitle = title;
       this.universalModalMessage = message;
       this.selectedAction = action;
-      this.selectedTaskId = postId;
+      this.selectedTaskId = taskId;
       this.universalModal = true;
     },
     handleConfirm() {
-      switch (this.selectedAction) {
-        case "delete":
-          this.deleteTodos(this.selectedTaskId);
-          this.successMessage = "Task successfully deleted.";
-          break;
-        default:
-          console.error("Invalid action:", this.selectedAction);
+      if (this.selectedAction === "delete") {
+        this.isLoading = true;
+        this.deleteTodos(this.selectedTaskId)
+          .then(() => {
+            this.successMessage = "Task successfully deleted.";
+          })
+          .catch((error) => {
+            this.errorMessage = error.message || "Failed to delete task.";
+          })
+          .finally(() => {
+            this.isLoading = false;
+            this.universalModal = false;
+          });
       }
-      this.universalModal = false;
     },
-
     handleCancel() {
-      this.deletemodal = false;
+      this.universalModal = false;
       this.selectedAction = null;
-      this.selectedPostId = null;
+      this.selectedTaskId = null;
     },
-
     toggleCompletedFilter() {
-      this.isCompletedFilter = !this.isCompletedFilter; // Filtrni teskari o‘zgartirish
+      this.isCompletedFilter = !this.isCompletedFilter;
     },
     onPageChanged(page) {
-      console.log(this.currentPage);
-      console.log(page.currentPage);
-
-      this.currentPage = page.currentPage; // Joriy sahifani yangilash
+      this.currentPage = page.currentPage;
     },
     onPerPageChanged(perPage) {
-      console.log(perPage);
-
-      // "Posts per page" o'zgartirilganda ishlaydi
-      this.perPage =
-        perPage.perPage === "All" ? this.allTodos.length : perPage.perPage; // "All" bo'lsa, barcha postlarni ko'rsatish
-      this.currentPage = 1; // Sahifani 1-ga qaytarish
+      this.perPage = perPage.perPage === "All" ? this.allTodos.length : perPage.perPage;
+      this.currentPage = 1;
     },
     updateTodos() {
       this.currentPage = 1;
     },
-    toggleTodostatus(taskId) {
-      this.toggleTodos(taskId);
+    toggleTodoStatus(taskId) {
+      this.isLoading = true;
+      this.toggleTodos(taskId)
+        .then(() => {
+          this.successMessage = "Task status updated.";
+        })
+        .catch((error) => {
+          this.errorMessage = error.message || "Failed to update task status.";
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
     },
     openTaskModal(task = null) {
-      this.modalTodos = task
-        ? { ...task }
-        : { id: null, title: "", completed: false };
+      this.modalTodo = task ? { ...task } : { id: null, title: "", completed: false };
       this.isModalOpen = true;
     },
     closeTaskModal() {
       this.isModalOpen = false;
-      this.modalTodos = { id: null, title: "", completed: false };
+      this.modalTodo = { id: null, title: "", completed: false };
     },
     saveTask() {
-      if (this.modalTodos.id) {
-        if (this.modalTodos.title.trim() === "") {
-          this.error = "Task title is required.";
-          return
-        } else {
-          this.successMessage = "Task successfully edited.";
-          this.editTodos(this.modalTodos);
-        }
-      } else {
-        this.addTodos(this.modalTodos);
-        this.successMessage = "Task successfully added.";
+      if (this.modalTodo.title.trim() === "") {
+        this.errorMessage = "Task title is required.";
+        return;
       }
-      this.closeTaskModal();
+
+      this.isLoading = true;
+      const action = this.modalTodo.id ? this.editTodos : this.addTodos;
+
+      action(this.modalTodo)
+        .then(() => {
+          this.successMessage = this.modalTodo.id ? "Task successfully edited." : "Task successfully added.";
+        })
+        .catch((error) => {
+          this.errorMessage = error.message || "Failed to save task.";
+        })
+        .finally(() => {
+          this.isLoading = false;
+          this.closeTaskModal();
+        });
     },
   },
   created() {
-    this.fetchTodos();
+    this.isLoading = true;
+    this.fetchTodos()
+      .catch((error) => {
+        this.errorMessage = error.message || "Failed to fetch todos.";
+      })
+      .finally(() => {
+        this.isLoading = false;
+      });
   },
 };
 </script>
+
+<style>
+.loader {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+</style>

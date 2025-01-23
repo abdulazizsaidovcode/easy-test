@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="isVisible"
-    class="absolute top-10 right-5 z-10 flex items-center w-full max-w-xs p-4 mb-4 text-gray-500 bg-white rounded-lg shadow"
+    class="fixed top-10 right-5 z-10 flex items-center w-full max-w-xs p-4 mb-4 text-gray-500 bg-white rounded-lg shadow"
     :class="animationClass"
     role="alert"
   >

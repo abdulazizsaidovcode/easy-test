@@ -8,64 +8,72 @@
 
     <!-- Filters Section -->
     <div class="mb-4 space-y-2">
-      <div class="flex space-x-4 items-center">
-        <input
-          v-model="filters.title"
-          type="text"
-          placeholder="Filter by title"
-          class="p-2 border rounded"
-        />
+      <div
+        class="flex space-x-4 items-center justify-between md:flex-row flex-col sm:gap-0 gap-5"
+      >
+        <div class="flex gap-4 items-center sm:flex-nowrap flex-wrap">
+          <input
+            v-model="filters.title"
+            type="text"
+            placeholder="Filter by title"
+            class="p-2 border rounded"
+          />
+          <select v-model="singleUserId" class="p-2 border rounded w-64">
+            <option value="">All</option>
+            <option v-for="user in getAllUsers" :key="user.id" :value="user.id">
+              {{ user.name }}
+            </option>
+          </select>
 
-        <select
-          v-model="filters.userId"
-          multiple
-          class="p-2 border rounded w-64"
+          <label>
+            <input type="checkbox" v-model="filters.favorite" class="mr-2" />
+            Favorites only
+          </label>
+        </div>
+        <!-- Add New Post Button -->
+        <button
+          @click="
+            () => {
+              openEditModal(post, 'post');
+            }
+          "
+          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
         >
-          <option v-for="user in getAllUsers" :key="user.id" :value="user.id">
-            {{ user.name }}
-          </option>
-        </select>
-
-        <label>
-          <input type="checkbox" v-model="filters.favorite" class="mr-2" />
-          Favorites only
-        </label>
+          Add New Post
+        </button>
       </div>
     </div>
 
     <!-- Sorting -->
     <div class="mb-4 flex justify-between items-center">
-      <div class="space-x-2">
+      <div v-if="selectedPosts.length" class="">
         <button
-          v-for="option in sortOptions"
-          :key="option.field"
-          @click="toggleSort(option.field)"
-          class="px-4 py-2 rounded border bg-gray-200 hover:bg-gray-300"
+          @click="confirmBulkAction('favorite')"
+          class="bg-blue-500 text-white px-4 py-2 rounded mr-2"
         >
-          {{ option.label }}
-          <span v-if="sortField === option.field">
-            {{ sortDirection === "asc" ? "↑" : "↓" }}
-          </span>
+          Add to Favorites
+        </button>
+        <button
+          @click="
+            openModal(
+              'Delete Posts',
+              'Are you sure you want to delete this post?',
+              'deleteSelected'
+            )
+          "
+          class="bg-red-500 text-white px-4 py-2 rounded"
+        >
+          Delete Selected
         </button>
       </div>
-
-      <!-- Add New Post Button -->
-      <button
-        @click="
-          openModal(
-            'Add New Post',
-            'Fill in the details below to create a new post.',
-            'add'
-          )
-        "
-        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-      >
-        Add New Post
-      </button>
     </div>
 
     <!-- Posts List -->
-    <div class="space-y-4">
+
+    <div
+      v-if="!isLoading && filteredAndPaginatedPosts.length"
+      class="space-y-4"
+    >
       <div
         v-for="post in filteredAndPaginatedPosts"
         :key="post.id"
@@ -76,7 +84,7 @@
             type="checkbox"
             :value="post.id"
             v-model="selectedPosts"
-            class="form-checkbox"
+            class="form-checkbox p-20"
           />
           <div>
             <h2 class="text-xl font-bold">{{ post.title }}</h2>
@@ -92,6 +100,7 @@
             @click="openEditModal(post)"
             class="bg-green-700 text-white px-2 py-1 rounded disabled:bg-gray-400"
           >
+            <i class="fa-solid fa-pen-to-square"></i>
             Edit
           </button>
 
@@ -107,6 +116,7 @@
             "
             class="bg-red-500 text-white px-2 py-1 rounded disabled:bg-gray-400"
           >
+            <i class="fa-solid fa-trash"></i>
             Delete
           </button>
 
@@ -122,6 +132,8 @@
             "
             class="bg-yellow-500 text-white px-2 py-1 rounded disabled:bg-gray-400"
           >
+            <i v-if="isFavorite(post.id)" class="fa-solid fa-bookmark"></i>
+            <i v-else="!isFavorite(post.id)" class="fa-regular fa-bookmark"></i>
             {{
               isFavorite(post.id)
                 ? isLoading
@@ -135,27 +147,13 @@
         </div>
       </div>
     </div>
-
-    <!-- Bulk Actions -->
-    <div v-if="selectedPosts.length" class="mt-4">
-      <button
-        @click="confirmBulkAction('favorite')"
-        class="bg-blue-500 text-white px-4 py-2 rounded mr-2"
-      >
-        Add to Favorites
-      </button>
-      <button
-        @click="
-          openModal(
-            'Delete Posts',
-            'Are you sure you want to delete this post?',
-            'deleteSelected'
-          )
-        "
-        class="bg-red-500 text-white px-4 py-2 rounded"
-      >
-        Delete Selected
-      </button>
+    <!-- Loading and No Data States -->
+    <Skleton v-if="isLoading" />
+    <div
+      v-else-if="!filteredAndPaginatedPosts.length && !isLoading"
+      class="text-center text-gray-500 py-10"
+    >
+      <p>No posts available. Try changing the filters or add new posts.</p>
     </div>
 
     <!-- Modal -->
@@ -171,6 +169,7 @@
       v-if="editModalOpen"
       :isOpen="editModalOpen"
       :post="currentPost"
+      :users="allUsers"
       @save="saveEdit"
       @close="editModalOpen = false"
     />
@@ -193,6 +192,8 @@ import CommentAccordion from "../components/accordion/Accordion_commit.vue";
 import DynamicToast from "../components/toast.vue";
 import UniversalModal from "../components/Modals/UniversalModal.vue";
 import Pagination from "../components/pagination.vue";
+import Skleton from "../components/skleton.vue";
+import Loading from "../components/loading.vue";
 
 export default {
   components: {
@@ -201,6 +202,7 @@ export default {
     DynamicToast,
     UniversalModal,
     Pagination,
+    Skleton,
   },
   data() {
     return {
@@ -209,6 +211,8 @@ export default {
       modalMessage: "",
       deleteModalType: "",
       selectedAction: "",
+
+      editmodalAction: "",
       editModalOpen: false,
 
       currentPost: null,
@@ -216,13 +220,13 @@ export default {
       perPage: 10,
       currentPage: 1,
       perPageOptions: [10, 20, 50, 100, "All"],
-      
-      isLoading: false,
+      isLoading: true,
       successMessage: null,
+      singleUserId: 0,
       selectedPosts: [],
       filters: {
         title: "",
-        userId: [],
+        userId: "",
         favorite: false,
       },
     };
@@ -243,7 +247,14 @@ export default {
     getAllUsers() {
       return this.allUsers;
     },
-
+    singleUserId: {
+      get() {
+        return this.filters.userId.length ? this.filters.userId[0] : "";
+      },
+      set(value) {
+        this.filters.userId = value ? [value] : [];
+      },
+    },
     filteredPosts() {
       return this.allPosts
         .filter((post) =>
@@ -254,9 +265,7 @@ export default {
             : true
         )
         .filter((post) =>
-          this.filters.userId.length
-            ? this.filters.userId.includes(post.userId)
-            : true
+          this.filters.userId ? this.filters.userId == post.userId : true
         )
         .filter((post) =>
           this.filters.favorite ? this.isFavorite(post.id) : true
@@ -286,14 +295,15 @@ export default {
     onPageChanged(page) {
       console.log(this.currentPage);
       console.log(page.currentPage);
-      
+
       this.currentPage = page.currentPage; // Joriy sahifani yangilash
     },
     onPerPageChanged(perPage) {
       console.log(perPage);
-      
+
       // "Posts per page" o'zgartirilganda ishlaydi
-      this.perPage = perPage.perPage === "All" ? this.filteredPosts.length : perPage.perPage; // "All" bo'lsa, barcha postlarni ko'rsatish
+      this.perPage =
+        perPage.perPage === "All" ? this.filteredPosts.length : perPage.perPage; // "All" bo'lsa, barcha postlarni ko'rsatish
       this.currentPage = 1; // Sahifani 1-ga qaytarish
     },
 
@@ -344,8 +354,9 @@ export default {
     isFavorite(postId) {
       return this.favoritePosts.some((post) => post.id === postId);
     },
-    openEditModal(post) {
-      this.currentPost = { ...post }; // Post copy for editing
+    openEditModal(post, type = "edit") {
+      this.editModalAction = type; // 'edit' yoki 'post' bo'lishi kerak
+      this.currentPost = type === "post" ? {} : { ...post }; // 'post' bo'lsa, bo'sh obyekt
       this.editModalOpen = true;
     },
     async deletePost(postId) {
@@ -375,8 +386,25 @@ export default {
     async saveEdit(updatedPost) {
       this.isLoading = true;
       try {
-        await this.$store.dispatch("posts/editPost", updatedPost);
-        this.successMessage = "Post successfully updated.";
+        // Qo'shish holati
+        if (this.editModalAction == "post") {
+          updatedPost.userId = parseInt(updatedPost.userId);
+          updatedPost.id = Date.now(); // Yangi post uchun vaqtinchalik ID
+          updatedPost.title = updatedPost.title.trim();
+          updatedPost.body = updatedPost.body.trim();
+
+          if (!updatedPost.title || !updatedPost.body) {
+            throw new Error("Title, user ID, and body are required.");
+          }
+
+          await this.$store.dispatch("posts/addPost", updatedPost); // Qo'shish uchun Vuex action
+          this.successMessage = "Post successfully added.";
+        } else {
+          // Tahrirlash holati
+          await this.$store.dispatch("posts/editPost", updatedPost);
+          this.successMessage = "Post successfully updated.";
+        }
+
         this.editModalOpen = false;
         setTimeout(() => (this.successMessage = null), 3000);
       } catch (error) {
@@ -385,19 +413,30 @@ export default {
         this.isLoading = false;
       }
     },
+
     confirmBulkAction(action) {
       if (action === "favorite") {
         this.selectedPosts.forEach((postId) => this.toggleFavorite(postId));
       } else if (action === "delete") {
         this.selectedPosts.forEach((postId) => this.deletePost(postId));
       }
-
       this.selectedPosts = [];
     },
   },
+  mutations: {
+    ADD_POST(state, post) {
+      state.allPosts.unshift(post); // Yangi postni boshiga qo'shish
+    },
+  },
   created() {
-    this.fetchPosts();
-    this.fetchUsers();
+    try {
+      this.fetchPosts();
+      this.fetchUsers();
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      this.isLoading = false; // Yuklanish holatini o'chirish
+    }
   },
 };
 </script>

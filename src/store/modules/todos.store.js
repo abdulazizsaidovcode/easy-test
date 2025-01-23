@@ -1,4 +1,5 @@
 import axios from "axios";
+import { apiUrl } from "../../const/api";
 
 const state = {
   todos: [],
@@ -7,14 +8,14 @@ const state = {
 
 const getters = {
   allTodos: (state) =>
-    state.todos.sort((a, b) => a.completed - b.completed), // Default sort
+    state.todos.sort((a, b) => a.completed - b.completed), // Default sort qilish
   error: (state) => state.error,
 };
 
 const actions = {
   async fetchTodos({ commit }) {
     try {
-      const response = await axios.get("http://localhost:3000/todos");
+      const response = await axios.get(`${apiUrl}todos`);
       commit("setTodos", response.data);
     } catch (error) {
       commit("setError", "Failed to fetch todos.");

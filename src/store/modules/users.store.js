@@ -1,20 +1,19 @@
 import axios from "axios";
 
 const state = {
-  users: [], // API'dan kelgan barcha postlar
-  error: null, // Xatoliklar
-  selected: [], // Saqlangan postlar ID'lari
+  users: [],
+  error: null,
+  selected: [],
 };
 
 const getters = {
-  allUsers: (state) => state.users, // Barcha postlarni olish
-  error: (state) => state.error, // Xatolikni olish
+  allUsers: (state) => state.users,
+  error: (state) => state.error,
   selectedUsers: (state) =>
     state.users.filter((user) => state.selected.includes(user.id)), // Saqlangan userlarni olish
 };
 
 const actions = {
-  
   async fetchUsers({ commit }) {
     // API'dan postlarni olish
     try {
@@ -30,7 +29,7 @@ const actions = {
 
 const mutations = {
   setUsers(state, users) {
-    state.users = users; // Postlarni yangilash
+    state.users = users; // Postlani yangilash
   },
   setError(state, error) {
     state.error = error; // Xatolikni o'rnatish

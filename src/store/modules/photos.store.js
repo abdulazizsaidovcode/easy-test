@@ -16,8 +16,7 @@ const getters = {
 const actions = {
     async fetchPhotos({ commit }) {
         try {
-            const response = await axios.get('http://localhost:3000/photos');
-            console.log("API Response:", response.data); // Ma'lumotni ko'rish
+            const response = await axios.get(`${apiUrl}photos`);
             commit('setPhotos', response.data);
         } catch (error) {
             console.error("API Error:", error); // Xatoni log qilish

@@ -3,7 +3,19 @@
     <h1 class="text-2xl font-bold mb-4">Photos of Album {{ albumId }}</h1>
     <p v-if="error" class="text-red-500 mb-4">{{ error }}</p>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+    <!-- Loading holati -->
+    <p v-if="isLoading" class="text-center text-blue-500 mb-4">Loading photos...</p>
+
+    <!-- No photos topilmasa -->
+    <p v-if="!isLoading && albumPhotos.length === 0" class="text-center text-gray-500 mb-4">
+      No photos available for this album.
+    </p>
+
+    <!-- Fotosuratlar -->
+    <div
+      v-if="!isLoading && albumPhotos.length > 0"
+      class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"
+    >
       <div
         v-for="photo in albumPhotos"
         :key="photo.id"
@@ -58,15 +70,16 @@ import { mapActions, mapGetters } from "vuex";
 export default {
   data() {
     return {
-      albumId: parseInt(this.$route.params.albumId), // Ensure it's an integer
+      albumId: parseInt(this.$route.params.albumId),
       isModalOpen: false,
       selectedPhoto: null,
+      isLoading: true, // Loading holati
     };
   },
   computed: {
     ...mapGetters("photos", ["photosByAlbum", "error"]),
     albumPhotos() {
-      return this.photosByAlbum(this.albumId); // Use Vuex getter correctly
+      return this.photosByAlbum(this.albumId);
     },
   },
   methods: {
@@ -91,21 +104,11 @@ export default {
     },
   },
   async created() {
-    await this.fetchPhotos();
+    try {
+      await this.fetchPhotos();
+    } finally {
+      this.isLoading = false; // Yuklash tugadi
+    }
   },
 };
 </script>
-
-<style scoped>
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
-}
-</style>
