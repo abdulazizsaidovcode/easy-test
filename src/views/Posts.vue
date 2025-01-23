@@ -190,7 +190,7 @@ import { mapActions, mapGetters } from "vuex";
 import EditModal from "../components/Modals/EditModal.vue";
 import CommentAccordion from "../components/accordion/Accordion_commit.vue";
 import DynamicToast from "../components/toast.vue";
-import UniversalModal from "../components/Modals/UniversalModal.vue";
+import UniversalModal from "../components/Modals/universalModal.vue";
 import Pagination from "../components/pagination.vue";
 import Skleton from "../components/skleton.vue";
 import Loading from "../components/loading.vue";

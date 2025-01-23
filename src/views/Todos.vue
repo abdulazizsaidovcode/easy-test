@@ -45,7 +45,7 @@
       <span class="loader"></span>
       <p>Loading...</p>
     </div>
-    
+
     <div v-if="!isLoading && !paginatedTodos.length" class="text-center mb-4">
       <p>no todos !</p>
     </div>
@@ -150,7 +150,7 @@
 <script>
 import { mapActions, mapGetters } from "vuex";
 import Pagination from "../components/pagination.vue";
-import UniversalModal from "../components/Modals/UniversalModal.vue";
+import UniversalModal from "../components/Modals/universalModal.vue";
 import DynamicToast from "../components/toast.vue";
 
 export default {

@@ -121,7 +121,7 @@
 <script>
 import { mapActions, mapGetters } from "vuex";
 import Pagination from "../components/Pagination.vue";
-import UniversalModal from "../components/Modals/universalMOdal.vue";
+import UniversalModal from "../components/Modals/universalModal.vue";
 import DynamicToast from "../components/toast.vue";
 
 export default {
