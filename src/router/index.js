@@ -1,20 +1,35 @@
-import { createRouter, createWebHistory } from 'vue-router'; // Vue Routerni to'g'ri import qiling
-import Posts from '../views/Posts.vue'; // Komponentingizni to'g'ri yo'ldan import qiling
+import { createRouter, createWebHistory } from 'vue-router';
+import Posts from '../views/Posts.vue';
+import Albums from "../views/Albums.vue";
+import Photos from "../views/Photos.vue";
+import Todos from "../views/Todos.vue";
 
-// Yo'nalishlar (routes)
 const routes = [
   {
     path: '/',
     name: 'posts',
     component: Posts,
   },
-  // Qo'shimcha yo'nalishlarni bu yerda kiritishingiz mumkin
+  {
+    path: "/albums",
+    name: "Albums",
+    component: Albums
+  },
+  {
+    path: "/todos",
+    name: "Todos",
+    component: Todos
+  },
+  {
+    path: "/photos/:albumId",
+    name: "Photos",
+    component: Photos
+  },
 ];
 
-// Routerni yarating
 const router = createRouter({
-  history: createWebHistory(), // Browser URL tarixidan foydalanish
-  routes, // Yo'nalishlar ro'yxati
+  history: createWebHistory(),
+  routes,
 });
 
 export { router };

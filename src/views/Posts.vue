@@ -112,12 +112,14 @@
 
           <button
             :disabled="isLoading"
-            @click="openModal(
+            @click="
+              openModal(
                 'Add to favorites',
                 'Are you sure you want to add to favourites?',
                 'AddToFavorites',
                 post.id
-              )"
+              )
+            "
             class="bg-yellow-500 text-white px-2 py-1 rounded disabled:bg-gray-400"
           >
             {{
@@ -172,40 +174,15 @@
       @save="saveEdit"
       @close="editModalOpen = false"
     />
-
     <!-- Pagination -->
-    <div class="mt-4 flex justify-between space-x-2">
-      <div class="flex gap-3">
-        <button
-          v-for="page in totalPages"
-          :key="page"
-          @click="currentPage = page"
-          :class="[
-            'px-3 py-1 rounded border',
-            currentPage === page ? 'bg-blue-500 text-white' : 'bg-gray-200',
-          ]"
-        >
-          {{ page }}
-        </button>
-      </div>
-      <div class="flex justify-between items-center">
-        <label for="perPage" class="text-sm mr-3"> Posts per page: </label>
-        <select
-          id="perPage"
-          v-model="perPage"
-          @change="updatePosts"
-          class="p-2 border rounded"
-        >
-          <option
-            v-for="option in perPageOptions"
-            :key="option"
-            :value="option"
-          >
-            {{ option }}
-          </option>
-        </select>
-      </div>
-    </div>
+    <Pagination
+      :totalItems="filteredPosts.length"
+      :per-page-options="[10, 20, 50, 'All']"
+      :default-per-page="10"
+      :current-page.sync="currentPage"
+      @page-changed="onPageChanged"
+      @per-page-changed="onPerPageChanged"
+    />
   </div>
 </template>
 
@@ -215,9 +192,16 @@ import EditModal from "../components/Modals/EditModal.vue";
 import CommentAccordion from "../components/accordion/Accordion_commit.vue";
 import DynamicToast from "../components/toast.vue";
 import UniversalModal from "../components/Modals/UniversalModal.vue";
+import Pagination from "../components/pagination.vue";
 
 export default {
-  components: { EditModal, CommentAccordion, DynamicToast, UniversalModal },
+  components: {
+    EditModal,
+    CommentAccordion,
+    DynamicToast,
+    UniversalModal,
+    Pagination,
+  },
   data() {
     return {
       deletemodal: false,
@@ -232,6 +216,7 @@ export default {
       perPage: 10,
       currentPage: 1,
       perPageOptions: [10, 20, 50, 100, "All"],
+      
       isLoading: false,
       successMessage: null,
       selectedPosts: [],
@@ -254,15 +239,11 @@ export default {
             self.findIndex((v) => v.id === value.id) === index
         );
     },
-    totalPages() {
-      const totalItems =
-        this.perPage === "All" ? this.filteredPosts.length : this.perPage;
-      return Math.ceil(this.filteredPosts.length / totalItems);
-    },
+
     getAllUsers() {
       return this.allUsers;
     },
-    
+
     filteredPosts() {
       return this.allPosts
         .filter((post) =>
@@ -287,6 +268,11 @@ export default {
       const end = start + this.perPage;
       return this.filteredPosts.slice(start, end);
     },
+    totalPages() {
+      const totalItems =
+        this.perPage === "All" ? this.filteredPosts.length : this.perPage;
+      return Math.ceil(this.filteredPosts.length / totalItems);
+    },
   },
   methods: {
     ...mapActions("posts", [
@@ -296,6 +282,20 @@ export default {
       "deletePost",
     ]),
     ...mapActions("users", ["fetchUsers"]),
+
+    onPageChanged(page) {
+      console.log(this.currentPage);
+      console.log(page.currentPage);
+      
+      this.currentPage = page.currentPage; // Joriy sahifani yangilash
+    },
+    onPerPageChanged(perPage) {
+      console.log(perPage);
+      
+      // "Posts per page" o'zgartirilganda ishlaydi
+      this.perPage = perPage.perPage === "All" ? this.filteredPosts.length : perPage.perPage; // "All" bo'lsa, barcha postlarni ko'rsatish
+      this.currentPage = 1; // Sahifani 1-ga qaytarish
+    },
 
     openModal(title, message, action, postId = null) {
       this.modalTitle = title;

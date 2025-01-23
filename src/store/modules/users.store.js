@@ -10,7 +10,7 @@ const getters = {
   allUsers: (state) => state.users, // Barcha postlarni olish
   error: (state) => state.error, // Xatolikni olish
   selectedUsers: (state) =>
-    state.users.filter((user) => state.selected.includes(user.id)), // Saqlangan postlarni olish
+    state.users.filter((user) => state.selected.includes(user.id)), // Saqlangan userlarni olish
 };
 
 const actions = {
